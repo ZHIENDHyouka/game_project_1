@@ -5,6 +5,7 @@
 #include <cmath>
 #include <list>
 #include <random>
+#include <vector>
 class Game;
 class SceneMain : public Scene
 {
@@ -15,6 +16,8 @@ private:
     std::list<Enemy *> enemies; // List to hold bullets
     Bullet template_bullet;     // Template for creating bullets
     Enemy template_enemy;       // Template for creating enemies
+    Explosion template_exp;
+    std::vector<Explosion*> explosions;
     EnemyBullet template_enemy_bullet;
     std::list<EnemyBullet *> enemy_bullet_list;        // Template for enemy bullets
     std::mt19937 random_gen;                           // Random number generator
@@ -41,6 +44,8 @@ public:
     void ShootEnemy(Enemy *enemy);
     SDL_FPoint GetDirection(const Enemy *enemy) const;
     void EnemyExplode(Enemy *enemy);
+    void UpdateExplosions(float delta_time);
+    void RenderExplosions() const;
 };
 
 #endif

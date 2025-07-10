@@ -78,4 +78,16 @@ struct EnemyBullet
     }
 };
 
+struct Explosion
+{
+    SDL_Texture* texture;
+    SDL_FPoint position;
+    int width;
+    int height;
+    int current_time;
+    int total_frame;
+    Uint32 start_time;
+    Uint32 FPS;
+};
+
 #endif

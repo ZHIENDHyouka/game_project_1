@@ -42,7 +42,6 @@ void SceneMain::init()
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load enemy texture: %s", IMG_GetError());
         return;
     }
-
     SDL_QueryTexture(template_enemy.texture, nullptr, nullptr, &template_enemy.width, &template_enemy.height);
     template_enemy.width /= 4;
     template_enemy.height /= 4;
@@ -57,6 +56,16 @@ void SceneMain::init()
                      &template_enemy_bullet.height);
     template_enemy_bullet.width /= 4;
     template_enemy_bullet.height /= 4;
+
+    template_exp.texture = IMG_LoadTexture(game.GetRenderer(),"assets/assets/effect/explosion.png");
+    if (template_exp.texture == nullptr)
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load enemy bullet texture: %s", IMG_GetError());
+        return;
+    }
+    SDL_QueryTexture(template_exp.texture, nullptr, nullptr, &template_exp.width,&template_exp.height);
+    template_exp.total_frame = template_exp.width / template_exp.height;
+    template_exp.width = template_exp.height;
 }
 
 void SceneMain::update(float delta_time)
@@ -371,4 +380,12 @@ SDL_FPoint SceneMain::GetDirection(const Enemy* enemy) const
 void SceneMain::EnemyExplode(Enemy* enemy)
 {
     delete enemy;
+}
+
+void SceneMain::UpdateExplosions(float delta_time)
+{
+}
+
+void SceneMain::RenderExplosions() const
+{
 }
