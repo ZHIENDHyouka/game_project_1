@@ -32,14 +32,15 @@ public:
     void ShootBullet();
     void UpdateBullets(float delta_time);
     void UpdateEnemies(float delta_time);
-    void RenderBullets();
+    void RenderBullets() const;
     void InitRandom();
     void SpawEnemy();
-    void RenderEnemies();
-    void RenderEnemyBullets();
+    void RenderEnemies() const;
+    void RenderEnemyBullets() const;
     void UpdateEnemyBullets(float delta_time);
     void ShootEnemy(Enemy *enemy);
-    SDL_FPoint GetDirection(Enemy *enemy);
+    SDL_FPoint GetDirection(const Enemy *enemy) const;
+    void EnemyExplode(Enemy *enemy);
 };
 
 #endif

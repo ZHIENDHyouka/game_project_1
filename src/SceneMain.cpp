@@ -1,4 +1,5 @@
 #include "SceneMain.h"
+
 SceneMain::SceneMain() : game(Game::Instance())
 {
 }
@@ -20,8 +21,10 @@ void SceneMain::init()
     SDL_QueryTexture(player.texture, nullptr, nullptr, &player.width, &player.height);
     player.width /= 4;
     player.height /= 4;
-    player.position = {static_cast<float>(game.GetWindowWidth() / 2 - player.width / 2),
-                       static_cast<float>(game.GetWindowHeight() - player.height)};
+    player.position = {
+        static_cast<float>(game.GetWindowWidth() / 2 - player.width / 2),
+        static_cast<float>(game.GetWindowHeight() - player.height)
+    };
 
     template_bullet.texture = IMG_LoadTexture(game.GetRenderer(), "assets/assets/image/laser-3.png");
     if (template_bullet.texture == nullptr)
@@ -50,7 +53,8 @@ void SceneMain::init()
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load enemy bullet texture: %s", IMG_GetError());
         return;
     }
-    SDL_QueryTexture(template_enemy_bullet.texture, nullptr, nullptr, &template_enemy_bullet.width, &template_enemy_bullet.height);
+    SDL_QueryTexture(template_enemy_bullet.texture, nullptr, nullptr, &template_enemy_bullet.width,
+                     &template_enemy_bullet.height);
     template_enemy_bullet.width /= 4;
     template_enemy_bullet.height /= 4;
 }
@@ -68,29 +72,31 @@ void SceneMain::render()
 {
     RenderBullets();
     RenderEnemyBullets();
-    SDL_Rect dest_rect = {static_cast<int>(player.position.x), static_cast<int>(player.position.y),
-                          player.width, player.height};
+    SDL_Rect dest_rect = {
+        static_cast<int>(player.position.x), static_cast<int>(player.position.y),
+        player.width, player.height
+    };
     SDL_RenderCopy(game.GetRenderer(), player.texture, nullptr, &dest_rect);
     RenderEnemies();
 }
 
 void SceneMain::clean()
 {
-    for (auto &bullet : bullets)
+    for (auto& bullet : bullets)
     {
-        delete bullet;    // Delete the bullet object
+        delete bullet; // Delete the bullet object
         bullet = nullptr; // Set pointer to nullptr after deletion
     }
     bullets.clear(); // Clear the list of bullets
-    for (auto &enemy : enemies)
+    for (auto& enemy : enemies)
     {
-        delete enemy;    // Delete the enemy object
+        delete enemy; // Delete the enemy object
         enemy = nullptr; // Set pointer to nullptr after deletion
     }
     enemies.clear(); // Clear the list of enemies
-    for (auto &enemy_bullet : enemy_bullet_list)
+    for (auto& enemy_bullet : enemy_bullet_list)
     {
-        delete enemy_bullet;    // Delete the enemy bullet object
+        delete enemy_bullet; // Delete the enemy bullet object
         enemy_bullet = nullptr; // Set pointer to nullptr after deletion
     }
     enemy_bullet_list.clear(); // Clear the list of enemy bullets
@@ -122,7 +128,7 @@ void SceneMain::clean()
     }
 }
 
-void SceneMain::handleEvents(const SDL_Event &event)
+void SceneMain::handleEvents(const SDL_Event& event)
 {
 }
 
@@ -178,7 +184,7 @@ void SceneMain::KeyboardControl(float delta_time)
 
 void SceneMain::ShootBullet()
 {
-    auto bullet = new Bullet(template_bullet);
+    const auto bullet = new Bullet(template_bullet);
     bullet->position.x = player.position.x + (player.width - bullet->width) / 2;
     bullet->position.y = player.position.y;
     bullets.push_back(bullet);
@@ -186,54 +192,80 @@ void SceneMain::ShootBullet()
 
 void SceneMain::UpdateBullets(float delta_time)
 {
-    int margin = 32; // Margin to keep bullets within bounds
+    constexpr int margin = 32; // Margin to keep bullets within bounds
+    constexpr int damage = 1;
     for (auto it = bullets.begin(); it != bullets.end();)
     {
-        Bullet *bullet = *it;
+        Bullet* bullet = *it;
         bullet->position.y -= bullet->speed * delta_time; // Move the bullet up
         if (bullet->position.y + margin < 0)
         {
-            delete bullet;          // Delete the bullet if it goes out of bounds
+            delete bullet; // Delete the bullet if it goes out of bounds
             it = bullets.erase(it); // Remove the bullet from the list
-            SDL_Log("Bullet removed from the list due to going out of bounds.");
+            // SDL_Log("Bullet removed from the list due to going out of bounds.");
         }
         else
         {
-            ++it;
+            bool is_hit = false;
+            SDL_Rect bullet_rect = bullet->GetRect();
+            for (const auto enemy : enemies)
+            {
+                SDL_Rect enemy_rect = enemy->GetRect();
+                if (SDL_HasIntersection(&bullet_rect, &enemy_rect))
+                {
+                    enemy->current_health -= damage;
+                    delete bullet;
+                    bullet = nullptr;
+                    it = bullets.erase(it);
+                    is_hit = true;
+                    break;
+                }
+            }
+            if (!is_hit)
+                ++it;
         }
     }
 }
 
 void SceneMain::UpdateEnemies(float delta_time)
 {
-    auto curr_time = SDL_GetTicks();
+    const auto curr_time = SDL_GetTicks();
     for (auto it = enemies.begin(); it != enemies.end();)
     {
-        Enemy *enemy = *it;
+        Enemy* enemy = *it;
         enemy->position.y += enemy->speed * delta_time; // Move the enemy down
         if (enemy->position.y > game.GetWindowHeight())
         {
-            delete enemy;           // Delete the enemy if it goes out of bounds
+            delete enemy; // Delete the enemy if it goes out of bounds
             it = enemies.erase(it); // Remove the enemy from the list
         }
         else
         {
+            if (enemy->current_health <= 0)
+            {
+                EnemyExplode(enemy);
+                it = enemies.erase(it);
+            }else
+            {
+                ++it;
+            }
             if (curr_time - enemy->last_shot >= enemy->cool_down)
             {
-                ShootEnemy(enemy);            // Shoot an enemy bullet if cooldown is met
+                ShootEnemy(enemy); // Shoot an enemy bullet if cooldown is met
                 enemy->last_shot = curr_time; // Update the last shot time
             }
-            ++it;
         }
     }
 }
 
-void SceneMain::RenderBullets()
+void SceneMain::RenderBullets() const
 {
-    for (const auto &bullet : bullets)
+    for (const auto& bullet : bullets)
     {
-        SDL_Rect dest_rect = {static_cast<int>(bullet->position.x), static_cast<int>(bullet->position.y),
-                              bullet->width, bullet->height};
+        SDL_Rect dest_rect = {
+            static_cast<int>(bullet->position.x), static_cast<int>(bullet->position.y),
+            bullet->width, bullet->height
+        };
         SDL_RenderCopy(game.GetRenderer(), bullet->texture, nullptr, &dest_rect);
     }
 }
@@ -244,29 +276,32 @@ void SceneMain::InitRandom()
     random_gen = std::mt19937(rd()); // Initialize random number generator with a random seed
     random_dist = std::uniform_real_distribution<float>(0.0f, 1.0f);
 }
+
 void SceneMain::SpawEnemy()
 {
     if (random_dist(random_gen) > 1 / 60.0f) // 1% chance to spawn an enemy each frame
     {
         return;
     }
-    Enemy *enemy = new Enemy(template_enemy);
+    Enemy* enemy = new Enemy(template_enemy);
     enemy->position.x = random_dist(random_gen) * (game.GetWindowWidth() - enemy->width);
     enemy->position.y = -static_cast<float>(enemy->height); // Start above the screen
     enemies.push_back(enemy);
 }
 
-void SceneMain::RenderEnemies()
+void SceneMain::RenderEnemies() const
 {
-    for (const auto &enemy : enemies)
+    for (const auto& enemy : enemies)
     {
-        SDL_Rect dest_rect = {static_cast<int>(enemy->position.x), static_cast<int>(enemy->position.y),
-                              enemy->width, enemy->height};
+        SDL_Rect dest_rect = {
+            static_cast<int>(enemy->position.x), static_cast<int>(enemy->position.y),
+            enemy->width, enemy->height
+        };
         SDL_RenderCopy(game.GetRenderer(), enemy->texture, nullptr, &dest_rect);
     }
 }
 
-void SceneMain::RenderEnemyBullets()
+void SceneMain::RenderEnemyBullets() const
 {
     for (auto e_bullet : enemy_bullet_list)
     {
@@ -274,15 +309,17 @@ void SceneMain::RenderEnemyBullets()
             static_cast<int>(e_bullet->position.x),
             static_cast<int>(e_bullet->position.y),
             e_bullet->width,
-            e_bullet->height};
+            e_bullet->height
+        };
         auto ancle = atan2(e_bullet->direction.y, e_bullet->direction.x) * 180 / M_PI - 90;
         SDL_RenderCopyEx(game.GetRenderer(), e_bullet->texture, nullptr, &rec, ancle, nullptr, SDL_FLIP_NONE);
     }
 }
 
-void SceneMain::UpdateEnemyBullets(float delta_time)
+void SceneMain::UpdateEnemyBullets(const float delta_time)
 {
-    auto margin = 32;
+    constexpr auto margin = 32;
+    const int bullet_damage = template_bullet.damage;
     for (auto it = enemy_bullet_list.begin(); it != enemy_bullet_list.end();)
     {
         auto temp_bullet = *it;
@@ -297,12 +334,24 @@ void SceneMain::UpdateEnemyBullets(float delta_time)
         }
         else
         {
-            ++it;
+            SDL_Rect player_rect = player.GetRect();
+            SDL_Rect bullet_enemy_rect = template_enemy_bullet.GetRect();
+            if (SDL_HasIntersection(&player_rect, &bullet_enemy_rect))
+            {
+                player.current_health -= bullet_damage;
+                delete temp_bullet;
+                temp_bullet = nullptr;
+                enemy_bullet_list.emplace(it);
+            }
+            else
+            {
+                ++it;
+            }
         }
     }
 }
 
-void SceneMain::ShootEnemy(Enemy *enemy)
+void SceneMain::ShootEnemy(Enemy* enemy)
 {
     auto temp_bullet = new EnemyBullet(template_enemy_bullet);
     temp_bullet->position.x = enemy->position.x + (enemy->width - temp_bullet->width) / 2;
@@ -311,10 +360,15 @@ void SceneMain::ShootEnemy(Enemy *enemy)
     enemy_bullet_list.push_back(temp_bullet);
 }
 
-SDL_FPoint SceneMain::GetDirection(Enemy *enemy)
+SDL_FPoint SceneMain::GetDirection(const Enemy* enemy) const
 {
     auto x = (player.position.x + player.width / 2) - (enemy->position.x + enemy->width / 2);
     auto y = (player.position.y + player.height / 2) - (enemy->position.y + enemy->height / 2);
     auto vec_length = sqrt(x * x + y * y);
     return SDL_FPoint(x / vec_length, y / vec_length);
+}
+
+void SceneMain::EnemyExplode(Enemy* enemy)
+{
+    delete enemy;
 }
