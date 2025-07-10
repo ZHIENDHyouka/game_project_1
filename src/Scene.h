@@ -6,6 +6,7 @@
 class Scene
 {
 private:
+    int b;
     int a;
 public:
     Scene() = default;
