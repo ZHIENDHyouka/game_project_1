@@ -1,0 +1,3 @@
+D:/project_game/project_1/build/CMakeFiles/SDL_Shooter-Windows.dir
+D:/project_game/project_1/build/CMakeFiles/ALL_BUILD.dir
+D:/project_game/project_1/build/CMakeFiles/ZERO_CHECK.dir

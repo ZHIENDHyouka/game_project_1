@@ -1,0 +1,10 @@
+^D:\PROJECT_GAME\PROJECT_1\BUILD\CMAKEFILES\B1706616913A589BCAC2DF26E976AE1E\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/project_game/project_1 -BD:/project_game/project_1/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/project_game/project_1/build/SDL_Shooter.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
