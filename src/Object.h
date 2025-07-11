@@ -84,10 +84,14 @@ struct Explosion
     SDL_FPoint position;
     int width;
     int height;
-    int current_time;
+    int current_frame;
     int total_frame;
     Uint32 start_time;
     Uint32 FPS;
+    SDL_Rect GetRect() const
+    {
+        return  SDL_Rect(static_cast<int>(position.x), static_cast<int>(position.y),width, height);
+    }
 };
 
 #endif

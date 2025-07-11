@@ -1,7 +1,6 @@
 #ifndef _SCENE_H_
 #define _SCENE_H_
 #include "Object.h"
-#include <SDL.h>
 #include <SDL_image.h>
 class Scene
 {

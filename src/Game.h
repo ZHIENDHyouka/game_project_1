@@ -2,7 +2,6 @@
 #define _GAME_H_
 #include "Scene.h"
 #include "SceneMain.h"
-#include <SDL.h>
 
 class Game
 {

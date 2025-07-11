@@ -25,7 +25,7 @@ private:
 
 public:
     SceneMain();
-    ~SceneMain();
+    ~SceneMain() override;
     void init() override;
     void update(float delta_time) override;
     void render() override;

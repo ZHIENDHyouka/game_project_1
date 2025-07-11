@@ -75,18 +75,20 @@ void SceneMain::update(float delta_time)
     SpawEnemy();
     UpdateEnemyBullets(delta_time);
     UpdateEnemies(delta_time);
+    UpdateExplosions(delta_time);
 }
 
 void SceneMain::render()
 {
     RenderBullets();
     RenderEnemyBullets();
-    SDL_Rect dest_rect = {
+    const SDL_Rect dest_rect = {
         static_cast<int>(player.position.x), static_cast<int>(player.position.y),
         player.width, player.height
     };
     SDL_RenderCopy(game.GetRenderer(), player.texture, nullptr, &dest_rect);
     RenderEnemies();
+    RenderExplosions();
 }
 
 void SceneMain::clean()
@@ -109,6 +111,16 @@ void SceneMain::clean()
         enemy_bullet = nullptr; // Set pointer to nullptr after deletion
     }
     enemy_bullet_list.clear(); // Clear the list of enemy bullets
+    for (auto& explosion : explosions)
+    {
+        if (explosion)
+        {
+            delete explosion;
+            explosion=nullptr;
+        }
+    }
+    explosions.clear();
+
     if (player.texture)
     {
         SDL_DestroyTexture(player.texture);
@@ -135,6 +147,11 @@ void SceneMain::clean()
         SDL_DestroyTexture(template_enemy_bullet.texture);
         template_enemy_bullet.texture = nullptr;
     }
+    if (template_exp.texture)
+    {
+        SDL_DestroyTexture(template_exp.texture);
+        template_exp.texture = nullptr;
+    }
 }
 
 void SceneMain::handleEvents(const SDL_Event& event)
@@ -143,8 +160,8 @@ void SceneMain::handleEvents(const SDL_Event& event)
 
 void SceneMain::KeyboardControl(float delta_time)
 {
-    float delta_value = delta_time * player.speed;
-    auto key_state = SDL_GetKeyboardState(nullptr);
+    const float delta_value = delta_time * player.speed;
+    const auto key_state = SDL_GetKeyboardState(nullptr);
     if (key_state[SDL_SCANCODE_W])
     {
         player.position.y -= delta_value; // Move up
@@ -379,13 +396,42 @@ SDL_FPoint SceneMain::GetDirection(const Enemy* enemy) const
 
 void SceneMain::EnemyExplode(Enemy* enemy)
 {
+    auto current_time = SDL_GetTicks();
+    auto explosion =  new Explosion(template_exp);
+    explosion->position.x = enemy->position.x + enemy->width / 2 - explosion->width / 2;
+    explosion->position.y = enemy->position.y + enemy->height / 2 - explosion->height / 2;
+    explosion->start_time = current_time;
+    explosions.push_back(explosion);
     delete enemy;
 }
 
 void SceneMain::UpdateExplosions(float delta_time)
 {
+    const auto current_time = SDL_GetTicks();
+    for (auto it = explosions.begin(); it != explosions.end(); )
+    {
+        auto explosion = *it;
+        explosion->current_frame = (current_time-explosion->start_time)*explosion->FPS/1000;//100ms 每帧的前提
+        if (explosion->current_frame>=explosion->total_frame)
+        {
+            delete explosion;
+            explosion=nullptr;
+            it = explosions.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
 }
 
 void SceneMain::RenderExplosions() const
 {
+    for (const auto explosion : explosions)
+    {
+        SDL_Rect ex_rect_dst = explosion->GetRect();
+        SDL_Rect ex_rect_src = {explosion->current_frame*explosion->width,0,
+                                explosion->width,explosion->height};
+        SDL_RenderCopy(game.GetRenderer(),explosion->texture,&ex_rect_src,&ex_rect_dst);
+    }
 }
