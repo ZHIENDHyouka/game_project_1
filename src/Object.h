@@ -12,6 +12,7 @@ struct Player
     Uint32 cool_down = 300; // Cooldown time for player actions in milliseconds
     Uint32 last_shot = 0; // Timestamp of the last shot taken by the player
     int current_health = 5;
+    int max_health = 5;
     Player() = default; // Default constructor
     Player(SDL_Texture* tex, SDL_FPoint pos, int w, int h, float s)
         : texture(tex), position(pos), width(w), height(h), speed(s)
@@ -94,4 +95,25 @@ struct Explosion
     }
 };
 
+enum class ItemType
+{
+    Life,
+    Shield,
+    Time
+};
+// 物品结构体
+struct Item{
+    SDL_Texture* texture = nullptr;
+    SDL_FPoint position = {0, 0};
+    SDL_FPoint direction = {0, 0};
+    int width = 0;
+    int height = 0;
+    int speed = 200;
+    int bounceCount = 3;
+    ItemType type = ItemType::Life;
+    SDL_Rect GetRect() const
+    {
+        return  SDL_Rect(static_cast<int>(position.x), static_cast<int>(position.y),width, height);
+    }
+};
 #endif
