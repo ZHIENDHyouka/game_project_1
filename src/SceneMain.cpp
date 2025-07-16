@@ -63,17 +63,28 @@ void SceneMain::init()
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load enemy bullet texture: %s", IMG_GetError());
         return;
     }
-    SDL_QueryTexture(template_exp.texture, nullptr, nullptr, &template_exp.width,&template_exp.height);
+    SDL_QueryTexture(template_exp.texture, nullptr, nullptr, &template_exp.width, &template_exp.height);
     template_exp.total_frame = template_exp.width / template_exp.height;
     template_exp.width = template_exp.height;
     template_exp.FPS = 10;
+
+    template_item.texture = IMG_LoadTexture(game.GetRenderer(), "assets/assets/image/bonus_life.png");
+    if (template_item.texture)
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load enemy bullet texture: %s", IMG_GetError());
+        return;
+    }
+    SDL_QueryTexture(template_item.texture, nullptr, nullptr, &template_item.width, &template_item.height);
+    template_item.width /= 4;
+    template_item.height /= 4;
 }
 
-void SceneMain::update(float delta_time)
+void SceneMain::update(const float delta_time)
 {
     KeyboardControl(delta_time);
     UpdateBullets(delta_time);
     SpawEnemy();
+    UpdateItems(delta_time);
     UpdateEnemyBullets(delta_time);
     UpdateEnemies(delta_time);
     UpdateExplosions(delta_time);
@@ -90,6 +101,7 @@ void SceneMain::render()
     SDL_RenderCopy(game.GetRenderer(), player.texture, nullptr, &dest_rect);
     RenderEnemies();
     RenderExplosions();
+    RenderItems();
 }
 
 void SceneMain::clean()
@@ -117,10 +129,16 @@ void SceneMain::clean()
         if (explosion)
         {
             delete explosion;
-            explosion=nullptr;
+            explosion = nullptr;
         }
     }
     explosions.clear();
+    for (const auto item : items)
+    {
+        if (item)
+            delete item;
+    }
+    items.clear();
 
     if (player.texture)
     {
@@ -152,6 +170,11 @@ void SceneMain::clean()
     {
         SDL_DestroyTexture(template_exp.texture);
         template_exp.texture = nullptr;
+    }
+    if (template_item.texture)
+    {
+        SDL_DestroyTexture(template_item.texture);
+        template_item.texture = nullptr;
     }
 }
 
@@ -339,8 +362,7 @@ void SceneMain::RenderEnemyBullets() const
             e_bullet->height
         };
         auto ancle = atan2(e_bullet->direction.y, e_bullet->direction.x) * 180 / M_PI - 90;
-        SDL_RenderCopyEx(game.GetRenderer(), e_bullet->texture, nullptr, &rec, ancle,
-nullptr, SDL_FLIP_NONE);
+        SDL_RenderCopyEx(game.GetRenderer(), e_bullet->texture, nullptr, &rec, ancle, nullptr, SDL_FLIP_NONE);
     }
 }
 
@@ -399,25 +421,30 @@ SDL_FPoint SceneMain::GetDirection(const Enemy* enemy) const
 void SceneMain::EnemyExplode(Enemy* enemy)
 {
     auto current_time = SDL_GetTicks();
-    auto explosion =  new Explosion(template_exp);
+    auto explosion = new Explosion(template_exp);
     explosion->position.x = enemy->position.x + enemy->width / 2 - explosion->width / 2;
     explosion->position.y = enemy->position.y + enemy->height / 2 - explosion->height / 2;
     explosion->start_time = current_time;
     explosions.push_back(explosion);
+    // 添加50%概率掉落物品
+    if (random_dist(random_gen) < 0.5f)
+    {
+        DropItem(enemy);
+    }
     delete enemy;
 }
 
 void SceneMain::UpdateExplosions(float delta_time)
 {
     const auto current_time = SDL_GetTicks();
-    for (auto it = explosions.begin(); it != explosions.end(); )
+    for (auto it = explosions.begin(); it != explosions.end();)
     {
         auto explosion = *it;
-        explosion->current_frame = (current_time-explosion->start_time)*explosion->FPS/1000;//100ms 每帧的前提
-        if (explosion->current_frame>=explosion->total_frame)
+        explosion->current_frame = (current_time - explosion->start_time) * explosion->FPS / 1000; //100ms 每帧的前提
+        if (explosion->current_frame >= explosion->total_frame)
         {
             delete explosion;
-            explosion=nullptr;
+            explosion = nullptr;
             it = explosions.erase(it);
         }
         else
@@ -432,8 +459,90 @@ void SceneMain::RenderExplosions() const
     for (const auto explosion : explosions)
     {
         SDL_Rect ex_rect_dst = explosion->GetRect();
-        SDL_Rect ex_rect_src = {explosion->current_frame*explosion->width,0,
-                                explosion->width,explosion->height};
-        SDL_RenderCopy(game.GetRenderer(),explosion->texture,&ex_rect_src,&ex_rect_dst);
+        SDL_Rect ex_rect_src = {
+            explosion->current_frame * explosion->width, 0,
+            explosion->width, explosion->height
+        };
+        SDL_RenderCopy(game.GetRenderer(), explosion->texture, &ex_rect_src, &ex_rect_dst);
+    }
+}
+
+void SceneMain::DropItem(const Enemy* enemy)
+{
+    const auto item = new Item(template_item);
+    item->position.x = enemy->position.x + enemy->width / 2 - item->width / 2;
+    item->position.y = enemy->position.y + enemy->height / 2 - item->height / 2;
+    const float angle = random_dist(random_gen) * 2 * M_PI;
+    item->direction.x = cos(angle);
+    item->direction.y = sin(angle);
+    items.push_back(item);
+}
+
+void SceneMain::UpdateItems(float delta_time)
+{
+    for (auto it = items.begin(); it != items.end();)
+    {
+        auto item = *it;
+        item->position.x += item->direction.x * item->speed * delta_time;
+        item->position.y += item->direction.y * item->speed * delta_time;
+        if (item->position.x < 0 && item->bounceCount > 0)
+        {
+            item->direction.x = -item->direction.x;
+            --item->bounceCount;
+        }
+        if (item->position.x + item->width > game.GetWindowWidth() && item->bounceCount > 0)
+        {
+            item->direction.x = -item->direction.x;
+            item->bounceCount--;
+        }
+        if (item->position.y < 0 && item->bounceCount > 0)
+        {
+            item->direction.y = -item->direction.y;
+            item->bounceCount--;
+        }
+        if (item->position.y + item->height > game.GetWindowWidth() && item->bounceCount > 0)
+        {
+            item->direction.y = -item->direction.y;
+            item->bounceCount--;
+        }
+        if (item->position.x + item->width < 0 ||
+            item->position.x > game.GetWindowWidth() ||
+            item->position.y + item->height < 0 ||
+            item->position.y > game.GetWindowHeight())
+        {
+            delete item;
+            it = items.erase(it);
+        }else
+        {
+            SDL_Rect player_rect = player.GetRect();
+            SDL_Rect item_rect = item->GetRect();
+            if (SDL_HasIntersection(&player_rect, &item_rect))
+            {
+                PlayerGetItem(item);
+                delete item;
+                it = items.erase(it);
+            }else
+            {
+                ++it;
+            }
+        }
+    }
+}
+
+void SceneMain::PlayerGetItem(Item* item)
+{
+    if (item->type==ItemType::Life)
+    {
+        player.current_health = player.current_health>player.max_health?
+                                player.max_health:++player.current_health;
+    }
+}
+
+void SceneMain::RenderItems() const
+{
+    for (auto &item : items)
+    {
+        SDL_Rect itemRect = template_item.GetRect();
+        SDL_RenderCopy(game.GetRenderer(), item->texture, nullptr, &itemRect);
     }
 }

@@ -22,6 +22,8 @@ private:
     std::list<EnemyBullet *> enemy_bullet_list;        // Template for enemy bullets
     std::mt19937 random_gen;                           // Random number generator
     std::uniform_real_distribution<float> random_dist; // Distribution for random numbers
+    Item template_item;
+    std::list<Item*> items;
 
 public:
     SceneMain();
@@ -46,6 +48,10 @@ public:
     void EnemyExplode(Enemy *enemy);
     void UpdateExplosions(float delta_time);
     void RenderExplosions() const;
+    void DropItem(const Enemy* enemy);
+    void UpdateItems(float delta_time);
+    void PlayerGetItem(Item* item);
+    void RenderItems() const;
 };
 
 #endif
