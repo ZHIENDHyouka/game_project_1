@@ -60,7 +60,7 @@ void SceneMain::init()
     template_exp.texture = IMG_LoadTexture(game.GetRenderer(),"assets/assets/effect/explosion.png");
     if (template_exp.texture == nullptr)
     {
-        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load enemy bullet texture: %s", IMG_GetError());
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load explosion texture: %s", IMG_GetError());
         return;
     }
     SDL_QueryTexture(template_exp.texture, nullptr, nullptr, &template_exp.width, &template_exp.height);
@@ -68,13 +68,15 @@ void SceneMain::init()
     template_exp.width = template_exp.height;
     template_exp.FPS = 10;
 
-    template_item.texture = IMG_LoadTexture(game.GetRenderer(), "assets/assets/image/bonus_life.png");
+    template_item.texture = IMG_LoadTexture(game.GetRenderer(),
+        "assets/assets/image/bonus_shield.png");
     if (template_item.texture)
     {
-        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load enemy bullet texture: %s", IMG_GetError());
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load items: %s", IMG_GetError());
         return;
     }
-    SDL_QueryTexture(template_item.texture, nullptr, nullptr, &template_item.width, &template_item.height);
+    SDL_QueryTexture(template_item.texture, nullptr, nullptr,
+        &template_item.width, &template_item.height);
     template_item.width /= 4;
     template_item.height /= 4;
 }
@@ -84,10 +86,10 @@ void SceneMain::update(const float delta_time)
     KeyboardControl(delta_time);
     UpdateBullets(delta_time);
     SpawEnemy();
-    UpdateItems(delta_time);
     UpdateEnemyBullets(delta_time);
     UpdateEnemies(delta_time);
     UpdateExplosions(delta_time);
+    UpdateItems(delta_time);
 }
 
 void SceneMain::render()
@@ -427,7 +429,9 @@ void SceneMain::EnemyExplode(Enemy* enemy)
     explosion->start_time = current_time;
     explosions.push_back(explosion);
     // 添加50%概率掉落物品
-    if (random_dist(random_gen) < 0.5f)
+    auto item_random= random_dist(random_gen);
+    SDL_log(item_random);
+    if (item_random < 0.8f)
     {
         DropItem(enemy);
     }
