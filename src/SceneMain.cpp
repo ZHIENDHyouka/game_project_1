@@ -66,6 +66,7 @@ void SceneMain::init()
     SDL_QueryTexture(template_exp.texture, nullptr, nullptr, &template_exp.width,&template_exp.height);
     template_exp.total_frame = template_exp.width / template_exp.height;
     template_exp.width = template_exp.height;
+    template_exp.FPS = 10;
 }
 
 void SceneMain::update(float delta_time)
@@ -338,7 +339,8 @@ void SceneMain::RenderEnemyBullets() const
             e_bullet->height
         };
         auto ancle = atan2(e_bullet->direction.y, e_bullet->direction.x) * 180 / M_PI - 90;
-        SDL_RenderCopyEx(game.GetRenderer(), e_bullet->texture, nullptr, &rec, ancle, nullptr, SDL_FLIP_NONE);
+        SDL_RenderCopyEx(game.GetRenderer(), e_bullet->texture, nullptr, &rec, ancle,
+nullptr, SDL_FLIP_NONE);
     }
 }
 
